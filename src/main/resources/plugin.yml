@@ -1,0 +1,24 @@
+name: AntiSpamPlugin
+version: 1.0.0
+main: com.antispam.AntiSpamPlugin
+api-version: 1.21
+description: Anti spam plugin with Discord logging
+authors: [You]
+
+commands:
+  unmute:
+    description: Unmute a player
+    usage: /unmute <player>
+    permission: antispam.admin
+  spamcheck:
+    description: Check a player's spam stats
+    usage: /spamcheck <player>
+    permission: antispam.admin
+
+permissions:
+  antispam.admin:
+    description: Access to antispam admin commands
+    default: op
+  antispam.bypass:
+    description: Bypass spam detection
+    default: op
