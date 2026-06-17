@@ -10,9 +10,17 @@ commands:
     description: Unmute a player
     usage: /unmute <player>
     permission: antispam.admin
+  mute:
+    description: Manually mute a player
+    usage: /mute <player> <minutes>
+    permission: antispam.admin
   spamcheck:
     description: Check a player's spam stats
     usage: /spamcheck <player>
+    permission: antispam.admin
+  resetwarns:
+    description: Reset a player's offences
+    usage: /resetwarns <player>
     permission: antispam.admin
 
 permissions:
