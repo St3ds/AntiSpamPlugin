@@ -16,8 +16,11 @@ public class AntiSpamPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new ChatListener(this, spamManager), this);
 
-        getCommand("unmute").setExecutor(new AdminCommands(this, spamManager));
-        getCommand("spamcheck").setExecutor(new AdminCommands(this, spamManager));
+        AdminCommands adminCmds = new AdminCommands(this, spamManager);
+        getCommand("unmute").setExecutor(adminCmds);
+        getCommand("mute").setExecutor(adminCmds);
+        getCommand("spamcheck").setExecutor(adminCmds);
+        getCommand("resetwarns").setExecutor(adminCmds);
 
         getLogger().info("AntiSpamPlugin enabled!");
     }
@@ -25,5 +28,13 @@ public class AntiSpamPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         getLogger().info("AntiSpamPlugin disabled!");
+    }
+
+    public DiscordLogger getDiscordLogger() {
+        return discordLogger;
+    }
+
+    public SpamManager getSpamManager() {
+        return spamManager;
     }
 }
