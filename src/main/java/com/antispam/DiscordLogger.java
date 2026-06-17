@@ -23,8 +23,18 @@ public class DiscordLogger {
         sendRequest(body);
     }
 
+    public void sendManualMute(String playerName, int mins, String admin) {
+        String body = "{\"type\":\"manualmute\",\"player\":\"" + playerName + "\",\"duration\":\"" + mins + "\",\"admin\":\"" + admin + "\"}";
+        sendRequest(body);
+    }
+
     public void sendUnmute(String playerName, String admin) {
         String body = "{\"type\":\"unmute\",\"player\":\"" + playerName + "\",\"reason\":\"" + admin + "\"}";
+        sendRequest(body);
+    }
+
+    public void sendReset(String playerName, String admin) {
+        String body = "{\"type\":\"reset\",\"player\":\"" + playerName + "\",\"admin\":\"" + admin + "\"}";
         sendRequest(body);
     }
 
