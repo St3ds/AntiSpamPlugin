@@ -1,0 +1,17 @@
+# AntiSpam Configuration
+spam-limit: 3
+spam-window: 2
+
+# Your Railway bot URL
+bot-url: "https://antispam-bot-production.up.railway.app/log"
+
+# Must match AUTH_KEY in Railway variables
+auth-key: "WHATEVER_PASSWORD_YOU_SET_IN_RAILWAY"
+
+messages:
+  muted: "&c&lYou have been muted for &f{duration} minute(s)&c! (Offence #{offence})"
+  unmuted: "&aYou have been unmuted!"
+  warning: "&e&l[AntiSpam] &eStop spamming! Next time you will be muted."
+  still-muted: "&c&lYou are muted! &7Wait for your mute to expire."
+  broadcast-mute: "&8[&cAntiSpam&8] &c{player} &7was muted for &f{duration} min(s). &8(Offence #{offence})"
+  broadcast-warn: "&8[&eAntiSpam&8] &e{player} &7was warned for spamming."
