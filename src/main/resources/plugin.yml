@@ -6,21 +6,21 @@ description: Anti spam plugin with Discord logging
 authors: [You]
 
 commands:
-  unmute:
+  asunmute:
     description: Unmute a player
-    usage: /unmute <player>
+    usage: /asunmute <player>
     permission: antispam.admin
-  mute:
+  asmute:
     description: Manually mute a player
-    usage: /mute <player> <minutes>
+    usage: /asmute <player> <minutes>
     permission: antispam.admin
   spamcheck:
     description: Check a player's spam stats
     usage: /spamcheck <player>
     permission: antispam.admin
-  resetwarns:
+  asreset:
     description: Reset a player's offences
-    usage: /resetwarns <player>
+    usage: /asreset <player>
     permission: antispam.admin
 
 permissions:
