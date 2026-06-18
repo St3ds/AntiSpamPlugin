@@ -14,34 +14,24 @@ public class DiscordLogger {
     }
 
     public void sendWarn(String playerName) {
-        String body = "{\"type\":\"warn\",\"player\":\"" + playerName + "\",\"reason\":\"3 messages in 2 seconds\"}";
-        sendRequest(body);
+        send("{\"type\":\"warn\",\"player\":\"" + playerName + "\"}");
     }
 
-    public void sendMute(String playerName, int mins, int offence) {
-        String body = "{\"type\":\"mute\",\"player\":\"" + playerName + "\",\"reason\":\"3 messages in 2 seconds\",\"duration\":\"" + mins + "\",\"offence\":\"" + offence + "\"}";
-        sendRequest(body);
-    }
-
-    public void sendManualMute(String playerName, int mins, String admin) {
-        String body = "{\"type\":\"manualmute\",\"player\":\"" + playerName + "\",\"duration\":\"" + mins + "\",\"admin\":\"" + admin + "\"}";
-        sendRequest(body);
+    public void sendMute(String playerName, int mins, String reason) {
+        send("{\"type\":\"mute\",\"player\":\"" + playerName + "\",\"duration\":\"" + mins + "\",\"reason\":\"" + reason + "\"}");
     }
 
     public void sendUnmute(String playerName, String admin) {
-        String body = "{\"type\":\"unmute\",\"player\":\"" + playerName + "\",\"reason\":\"" + admin + "\"}";
-        sendRequest(body);
+        send("{\"type\":\"unmute\",\"player\":\"" + playerName + "\",\"admin\":\"" + admin + "\"}");
     }
 
     public void sendReset(String playerName, String admin) {
-        String body = "{\"type\":\"reset\",\"player\":\"" + playerName + "\",\"admin\":\"" + admin + "\"}";
-        sendRequest(body);
+        send("{\"type\":\"reset\",\"player\":\"" + playerName + "\",\"admin\":\"" + admin + "\"}");
     }
 
-    private void sendRequest(String body) {
+    private void send(String body) {
         String botUrl = plugin.getConfig().getString("bot-url", "");
         String authKey = plugin.getConfig().getString("auth-key", "");
-
         if (botUrl.isEmpty()) return;
 
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -54,20 +44,13 @@ public class DiscordLogger {
                 con.setDoOutput(true);
                 con.setConnectTimeout(5000);
                 con.setReadTimeout(5000);
-
                 try (OutputStream os = con.getOutputStream()) {
-                    byte[] input = body.getBytes(StandardCharsets.UTF_8);
-                    os.write(input, 0, input.length);
+                    os.write(body.getBytes(StandardCharsets.UTF_8));
                 }
-
-                int responseCode = con.getResponseCode();
-                if (responseCode != 200) {
-                    plugin.getLogger().warning("[AntiSpam] Discord log failed! Response: " + responseCode);
-                }
-
+                con.getResponseCode();
                 con.disconnect();
             } catch (Exception e) {
-                plugin.getLogger().warning("[AntiSpam] Could not send Discord log: " + e.getMessage());
+                plugin.getLogger().warning("[AntiSpam] Discord log failed: " + e.getMessage());
             }
         });
     }
