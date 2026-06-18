@@ -11,8 +11,9 @@ public class SpamManager {
     private final DiscordLogger discordLogger;
 
     private final Map<UUID, Integer> spamCount = new HashMap<>();
-    private final Map<UUID, Integer> offences = new HashMap<>();
+    private final Map<UUID, Boolean> warned = new HashMap<>();
     private final Map<UUID, Boolean> muted = new HashMap<>();
+    private final Map<UUID, Long> muteEndTime = new HashMap<>();
 
     public SpamManager(AntiSpamPlugin plugin, DiscordLogger discordLogger) {
         this.plugin = plugin;
@@ -21,6 +22,17 @@ public class SpamManager {
 
     public boolean isMuted(Player player) {
         return muted.getOrDefault(player.getUniqueId(), false);
+    }
+
+    public String getRemainingTime(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (!muteEndTime.containsKey(uuid)) return "unknown";
+        long remaining = muteEndTime.get(uuid) - System.currentTimeMillis();
+        if (remaining <= 0) return "0 seconds";
+        long mins = remaining / 60000;
+        long secs = (remaining % 60000) / 1000;
+        if (mins > 0) return mins + " minute(s) and " + secs + " second(s)";
+        return secs + " second(s)";
     }
 
     public void incrementSpam(Player player) {
@@ -41,79 +53,53 @@ public class SpamManager {
         if (count >= spamLimit) {
             spamCount.remove(uuid);
 
-            if (!offences.containsKey(uuid)) {
-                offences.put(uuid, 0);
-                String warnMsg = plugin.getConfig().getString("messages.warning", "&e&l[AntiSpam] &eStop spamming!");
+            // Not yet warned — warn first
+            if (!warned.getOrDefault(uuid, false)) {
+                warned.put(uuid, true);
+
+                String warnMsg = plugin.getConfig().getString("messages.warning",
+                        "&e&l[AntiSpam] &eStop spamming! Next time you will be muted for 3 minutes.");
                 player.sendMessage(colorize(warnMsg));
 
-                String broadcastMsg = plugin.getConfig().getString("messages.broadcast-warn", "&8[&eAntiSpam&8] &e{player} &7was warned.")
+                String broadcastMsg = plugin.getConfig().getString("messages.broadcast-warn",
+                        "&8[&eAntiSpam&8] &e{player} &7was warned for spamming.")
                         .replace("{player}", player.getName());
                 plugin.getServer().broadcastMessage(colorize(broadcastMsg));
 
-                plugin.getLogger().info("[AntiSpam] WARNING — " + player.getName() + " spammed " + spamLimit + " messages in " + spamWindow + " seconds.");
+                plugin.getLogger().info("[AntiSpam] WARNING — " + player.getName());
                 discordLogger.sendWarn(player.getName());
+
+                // Reset warn after 30 seconds so they get warned again next session
+                plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+                    warned.remove(uuid);
+                }, 30 * 20L);
                 return;
             }
 
-            int offenceCount = offences.getOrDefault(uuid, 0) + 1;
-            offences.put(uuid, offenceCount);
-
-            int mins = getMuteDuration(offenceCount);
-            mutePlayer(player, mins, offenceCount);
+            // Already warned — mute for 3 minutes
+            mutePlayer(player, 3, "Spamming");
         }
     }
 
-    public int getMuteDuration(int offenceCount) {
-        if (offenceCount == 1) return 1;
-        else if (offenceCount == 2) return 3;
-        else if (offenceCount == 3) return 5;
-        else if (offenceCount == 4) return 10;
-        else if (offenceCount == 5) return 20;
-        else return 30;
-    }
-
-    public void mutePlayer(Player player, int mins, int offenceCount) {
+    public void mutePlayer(Player player, int mins, String reason) {
         UUID uuid = player.getUniqueId();
         muted.put(uuid, true);
+        muteEndTime.put(uuid, System.currentTimeMillis() + (mins * 60 * 1000L));
+        warned.remove(uuid);
 
-        String muteMsg = plugin.getConfig().getString("messages.muted", "&c&lMuted for &f{duration} min(s)!")
-                .replace("{duration}", String.valueOf(mins))
-                .replace("{offence}", String.valueOf(offenceCount));
-        player.sendMessage(colorize(muteMsg));
+        String muteMsg = colorize("&c&lYou have been muted for &f" + mins + " minute(s)&c! Reason: &f" + reason);
+        player.sendMessage(muteMsg);
 
-        String broadcastMsg = plugin.getConfig().getString("messages.broadcast-mute", "&8[&cAntiSpam&8] &c{player} &7muted for &f{duration} min(s).")
-                .replace("{player}", player.getName())
-                .replace("{duration}", String.valueOf(mins))
-                .replace("{offence}", String.valueOf(offenceCount));
-        plugin.getServer().broadcastMessage(colorize(broadcastMsg));
+        String broadcastMsg = colorize("&8[&cAntiSpam&8] &c" + player.getName() + " &7was muted for &f" + mins + " min(s)&7. Reason: &f" + reason);
+        plugin.getServer().broadcastMessage(broadcastMsg);
 
-        plugin.getLogger().info("[AntiSpam] MUTED — " + player.getName() + " | Duration: " + mins + " min(s) | Offence #" + offenceCount);
-        discordLogger.sendMute(player.getName(), mins, offenceCount);
+        plugin.getLogger().info("[AntiSpam] MUTED — " + player.getName() + " | " + mins + " min(s) | Reason: " + reason);
+        discordLogger.sendMute(player.getName(), mins, reason);
 
         plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
             if (muted.getOrDefault(uuid, false)) {
                 muted.remove(uuid);
-                Player online = plugin.getServer().getPlayer(uuid);
-                if (online != null) {
-                    String unmutedMsg = plugin.getConfig().getString("messages.unmuted", "&aYou have been unmuted!");
-                    online.sendMessage(colorize(unmutedMsg));
-                }
-            }
-        }, mins * 60 * 20L);
-    }
-
-    public void manualMute(Player player, int mins, String admin) {
-        UUID uuid = player.getUniqueId();
-        muted.put(uuid, true);
-
-        player.sendMessage(colorize("&c&lYou have been manually muted for &f" + mins + " minute(s) &cby &f" + admin + "&c!"));
-        plugin.getServer().broadcastMessage(colorize("&8[&cAntiSpam&8] &c" + player.getName() + " &7was manually muted for &f" + mins + " min(s) &7by &f" + admin));
-        plugin.getLogger().info("[AntiSpam] " + player.getName() + " manually muted for " + mins + " min(s) by " + admin);
-        discordLogger.sendManualMute(player.getName(), mins, admin);
-
-        plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
-            if (muted.getOrDefault(uuid, false)) {
-                muted.remove(uuid);
+                muteEndTime.remove(uuid);
                 Player online = plugin.getServer().getPlayer(uuid);
                 if (online != null) {
                     online.sendMessage(colorize("&aYou have been unmuted!"));
@@ -124,19 +110,14 @@ public class SpamManager {
 
     public void unmutePlayer(Player player) {
         muted.remove(player.getUniqueId());
+        muteEndTime.remove(player.getUniqueId());
     }
 
-    public void resetOffences(Player player) {
-        offences.remove(player.getUniqueId());
+    public void resetPlayer(Player player) {
+        warned.remove(player.getUniqueId());
         spamCount.remove(player.getUniqueId());
-    }
-
-    public int getOffences(Player player) {
-        return offences.getOrDefault(player.getUniqueId(), 0);
-    }
-
-    public boolean isMutedRaw(UUID uuid) {
-        return muted.getOrDefault(uuid, false);
+        muted.remove(player.getUniqueId());
+        muteEndTime.remove(player.getUniqueId());
     }
 
     private String colorize(String msg) {
