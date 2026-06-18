@@ -20,23 +20,23 @@ public class ChatListener implements Listener {
     public void onChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
 
-        // Bypass for staff
         if (player.hasPermission("antispam.bypass")) {
             return;
         }
 
-        // Block muted players
         if (spamManager.isMuted(player)) {
             event.setCancelled(true);
-            String msg = plugin.getConfig().getString("messages.still-muted", "&c&lYou are muted!");
-            player.sendMessage(msg.replace("&", "\u00a7"));
+            String remaining = spamManager.getRemainingTime(player);
+            player.sendMessage(colorize("&c&lYou are muted! &7Time remaining: &c" + remaining));
             return;
         }
 
-        // Check spam
-        event.setCancelled(false);
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             spamManager.incrementSpam(player);
         });
+    }
+
+    private String colorize(String msg) {
+        return msg.replace("&", "\u00a7");
     }
 }
